@@ -54,7 +54,7 @@ def actor_model_P1(data):
 	b_fcf = tf.get_variable("b_fcf", [num_rows*num_cols],
 			initializer=tf.constant_initializer())
 			
-	# Reshape the data and plug it into the network, with dropout if this is during training
+	# Reshape the data and plug it into the network
 	flattener = tf.reshape(data, [-1, num_rows*num_cols*2])
 	h_fc1 = tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1)
 	h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
@@ -84,7 +84,7 @@ def actor_model_P2(data):
 	b_fcf = tf.get_variable("b_fcf", [num_rows*num_cols],
 			initializer=tf.constant_initializer())
 			
-	# Reshape the data and plug it into the network, with dropout if this is during training
+	# Reshape the data and plug it into the network
 	flattener = tf.reshape(data, [-1, num_rows*num_cols*2])
 	h_fc1 = tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1)
 	h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
@@ -114,7 +114,7 @@ def critic_model(data):
 	b_fcf = tf.get_variable("b_fcf", [1],
 			initializer=tf.constant_initializer())
 			
-	# Reshape the data and plug it into the network, with dropout if this is during training
+	# Reshape the data and plug it into the network
 	flattener = tf.reshape(data, [-1, num_rows*num_cols*2])
 	h_fc1 = tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1)
 	h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
@@ -122,6 +122,7 @@ def critic_model(data):
 	# Finally, return the output of the model, which should be scalar
 	v = tf.matmul(h_fc2, W_fcf) + b_fcf
 	return v
+
 
 pg_actorcritic = ActionValueActorCritic(sess,
 										actor_optimizer,
@@ -132,12 +133,15 @@ pg_actorcritic = ActionValueActorCritic(sess,
 
 saver = tf.train.Saver()
 
+# Number of games to play
 MAX_GAMES = 10001
+show_game = 0
+
+# Saved parameters for user output and checking
 one_wins = 0
 two_wins = 0
 old_one = 0
 old_two = 0
-
 game_list = []
 first_wins = []
 second_wins = []
@@ -150,10 +154,9 @@ tie_list = []
 # Now that the models are all set, and the variables are initialized (in ActionValueActorCritic),
 # we can start with the actual training of the model.
 
-show_game = 0
 
+# Prepare a plot
 fig = plt.figure(1)
-
 plt.subplot(211)
 plt.xlabel("Game number")
 plt.ylabel("Win percentage Versus Random")
@@ -222,18 +225,6 @@ for game_num in range(1, MAX_GAMES+1):
 		# Update the board, and update the feedboard
 		Board = New_Board
 
-		"""if show_game:
-			print("Action chosen: {}".format(column))
-			print(Board)
-			if Reward == 0:
-				print("Player #{0} (Game #{1})".format(player_num, game_num))
-
-			elif Reward == 1:
-				print("Player #{0}, (Game #{1}) WINNER".format(player_num, game_num))
-
-			else:
-				print("Player #{0}, (Game #{1}) TIE GAME".format(player_num, game_num))"""
-
 		# Swap player's turn
 		if not Reward:
 			if player_num == 1:
@@ -258,6 +249,7 @@ for game_num in range(1, MAX_GAMES+1):
 
 	# This point is reached once a game is finished
 
+	# Play games against a random opponent to check progress
 	if play_game:
 		go_first = np.zeros([3]) #Format is win/loss/tie
 		go_second = np.zeros([3])
