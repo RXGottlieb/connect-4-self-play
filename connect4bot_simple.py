@@ -1,4 +1,4 @@
-#  The python version of Connect 4, using TensorFlow.
+# Run using "run_connect4bot_simple.py"
 
 from __future__ import absolute_import
 from __future__ import division

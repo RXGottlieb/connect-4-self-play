@@ -1,3 +1,6 @@
+# An implementation of the actor-critic algorithm to train a (simple) neural network
+# to play Connect 4, through games of self-play
+
 from __future__ import print_function
 from collections import deque
 
