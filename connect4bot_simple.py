@@ -30,8 +30,6 @@ class ActionValueActorCritic(object):
 					# Board size parameters
 					num_rows = 6,
 					num_cols = 7,
-					# Dropout parameter for training
-					dropout = 0.7,
 					# Batch size into the optimizer
 					batch_size = 1,
 					# Decay parameter for eligibility trace
@@ -59,15 +57,15 @@ class ActionValueActorCritic(object):
 		# Training parameters
 		self.num_hidden1 = num_hidden1
 		self.num_hidden2 = num_hidden2
-		self.dropout = dropout
 		self.batch_size = batch_size
 		self.decay = decay
 		self.reg_param = reg_param
 		self.max_gradient = max_gradient
 
-		# Counter NOTE: not sure if necessary
+		# Counter for games played
 		self.game_num = 1
 
+		# Saved parameters for user output and checking
 		self.actor_P1_loss_tot = 0
 		self.actor_P2_loss_tot = 0
 		self.critic_loss_tot = 0
@@ -75,8 +73,8 @@ class ActionValueActorCritic(object):
 		self.test = 0
 		self.losses = np.array([0,0,0,0,0,0], dtype=float)
 
+		# Initialize the variables
 		self.create_variables()
-
 
 		if not self.RESTORE_HERE:
 			# Create and initialize variables from run_connect4bot_simple.py
@@ -86,6 +84,7 @@ class ActionValueActorCritic(object):
 			# Make sure the variables are initialized for some reason
 			self.session.run(tf.assert_variables_initialized())
 		else:
+			# If the parameters are to be loaded instead of randomly initialized, load them
 			self.saver = tf.train.Saver()
 			self.saver.restore(self.session, "/tmp/simple/model.ckpt")
 			print("Model restored")
@@ -140,27 +139,12 @@ class ActionValueActorCritic(object):
 			# Determine the estimated value of the state (exponential to be between 0 and 1)
 			with tf.variable_scope("critic_model", reuse=True):
 				self.estimated_value = self.critic_model(self.state)
-				#self.critic_output = self.critic_model(self.state)
-				#self.estimated_value = tf.divide(tf.ones([]), tf.add(tf.ones([]), tf.exp(-self.critic_output)))
-
-				#self.next_value = tf.cond(tf.equal(tf.count_nonzero(self.next_state), tf.zeros([], dtype=tf.int64)), 
-				#		lambda: tf.zeros([], dtype=tf.float32),
-				#		lambda: tf.ones([]) - tf.divide(tf.ones([]), tf.add(tf.ones([]), tf.exp(tf.reshape(-self.critic_model(self.next_state), []))))
-				#)
 				self.next_value = tf.cond(tf.equal(tf.count_nonzero(self.next_state), tf.zeros([], dtype=tf.int64)), 
 						lambda: tf.zeros([], dtype=tf.float32),
 						lambda: 1-self.critic_model(self.next_state)
 				)
-			
-			# 
-			#self.pre_mask = tf.reduce_sum(self.state, 3) #Should be [1,6,7]
-			#self.pre_mask2 = tf.count_nonzero(self.pre_mask, 1) #Should be [1,7]
-			#self.mask1 = tf.subtract(5*tf.ones([1,7], dtype=tf.int64), self.pre_mask2) #Should be [1,7], value is 5 if empty and -1 if full
-			# Now I need to use the mask to make the value of mask, in that column, be the "on"
-			#self.mask2 = tf.one_hot(self.mask1, depth=6) #This is now a [1,7,6], where each column of 6 is a one-hot
-			#self.mask3 = tf.transpose(self.mask2, perm = [0, 2, 1]) #This is now a [1,6,7], hopefully is the same, with one-hot
-			#self.new_mask2 = tf.equal(self.mask3, tf.ones([1,6,7], tf.float32))
-
+	
+			# Create a mask for valid moves
 			self.mask = tf.equal(tf.transpose(tf.one_hot(tf.subtract(
 					5*tf.ones([1,7], dtype=tf.int64), tf.count_nonzero(tf.reduce_sum(
 					self.state, 3), 1)), depth=6), perm = [0, 2, 1]), tf.ones([1,6,7], tf.float32)
@@ -212,7 +196,6 @@ class ActionValueActorCritic(object):
 					self.ACTOR_AFTER = self.P2_actor_gradients[count]
 
 			# Compute the gradients for the critic (difference between discounted reward and estimate squared)
-			#self.mean_square_loss = tf.reduce_mean(tf.square(self.reward - self.estimated_value))
 			self.mean_square_loss = tf.reduce_mean(tf.square(self.delta))
 			self.critic_regularization_loss = tf.reduce_sum([tf.reduce_sum(tf.square(x)) for x in critic_model_variables])
 			self.critic_total_loss = self.mean_square_loss + self.reg_param * self.critic_regularization_loss
@@ -260,19 +243,9 @@ class ActionValueActorCritic(object):
 			action_scores = self.session.run(self.P2_pre_action_scores, {self.state: state})[0]
 
 		# Determine the valid moves, and set the log-likelihood of invalid moves to 0
-		#move1 = np.sum(state, 3)
-		#move2 = np.count_nonzero(move1, 1)
-		#move3 = 5 - move2
-		#move4 = np.equal.outer(move3, np.arange(6)).astype(np.int)
-		#move5 = np.transpose(move4, [0, 2, 1])
-		#move6 = np.reshape(move5, [1, 42])
 		valid_moves = np.reshape(np.transpose(np.equal.outer(5 - np.count_nonzero(np.sum(
 				state, 3), 1), np.arange(6)).astype(np.int), [0, 2, 1]), [42,]
 		)
-		#print(action_scores)
-		#print(valid_moves)
-		#print(action_scores.shape)
-		#print(valid_moves.shape)
 		action_scores[valid_moves==0] = float("-inf")
 
 		# Perform a softmax operation on the valid action scores

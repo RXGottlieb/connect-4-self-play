@@ -3,6 +3,7 @@ from collections import deque
 
 from connect4bot_simple import ActionValueActorCritic
 from connect4game import move
+
 import tensorflow as tf
 import numpy as np
 import sys
@@ -12,15 +13,11 @@ import matplotlib.patches as mpatches
 
 sess = tf.Session()
 
-#SGD where critic has 0.01 and actor has 0.0001
-
-#optimizer = tf.train.AdamOptimizer(learning_rate=0.005, beta1=0.9, beta2=0.999, epsilon=0.1)
 critic_optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0001)
 actor_optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
 
 #state_dim = [1,6,7,2]
-#num_actions = [7]
-#NOTE: num_actions will now be a [6,7]
+#num_actions = [6,7]
 
 # Nodes in the first hidden layer
 num_hidden1 = 1024
@@ -32,14 +29,11 @@ num_hidden2 = 128
 num_rows = 6
 num_cols = 7
 
-# Dropout parameter for training
-dropout = 0.7
-
 # Batch size into the optimizer
 batch_size = 1
 
 
-def actor_model_P1(data, train=False):
+def actor_model_P1(data):
 	### Define the policy neural network for player 1
 
 	# The input connects to this fully connected layer (6x7x2)[84] -> 1024
@@ -62,18 +56,14 @@ def actor_model_P1(data, train=False):
 			
 	# Reshape the data and plug it into the network, with dropout if this is during training
 	flattener = tf.reshape(data, [-1, num_rows*num_cols*2])
-	if train:
-		h_fc1 = tf.nn.dropout(tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1), dropout)
-		h_fc2 = tf.nn.dropout(tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2), dropout)
-	else:
-		h_fc1 = tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1)
-		h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
+	h_fc1 = tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1)
+	h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
 	
 	# Finally, return the output of the model, which should be [num_rows*num_cols, 1]
 	p = tf.matmul(h_fc2, W_fcf) + b_fcf
 	return p
 
-def actor_model_P2(data, train=False):
+def actor_model_P2(data):
 	### Define the policy neural network for player 2
 
 	# The input connects to this fully connected layer (6x7x2)[84] -> 1024
@@ -96,18 +86,14 @@ def actor_model_P2(data, train=False):
 			
 	# Reshape the data and plug it into the network, with dropout if this is during training
 	flattener = tf.reshape(data, [-1, num_rows*num_cols*2])
-	if train:
-		h_fc1 = tf.nn.dropout(tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1), dropout)
-		h_fc2 = tf.nn.dropout(tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2), dropout)
-	else:
-		h_fc1 = tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1)
-		h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
+	h_fc1 = tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1)
+	h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
 	
 	# Finally, return the output of the model, which should be [num_rows*num_cols, 1]
 	p = tf.matmul(h_fc2, W_fcf) + b_fcf
 	return p
 
-def critic_model(data, train=False):
+def critic_model(data):
 	### Define the critic neural network (same architecture as actor network but with scalar output)
 
 	# The input connects to this fully connected layer
@@ -130,12 +116,8 @@ def critic_model(data, train=False):
 			
 	# Reshape the data and plug it into the network, with dropout if this is during training
 	flattener = tf.reshape(data, [-1, num_rows*num_cols*2])
-	if train:
-		h_fc1 = tf.nn.dropout(tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1), dropout)
-		h_fc2 = tf.nn.dropout(tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2), dropout)
-	else:
-		h_fc1 = tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1)
-		h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
+	h_fc1 = tf.nn.relu(tf.matmul(flattener, W_fc1) + b_fc1)
+	h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
 	
 	# Finally, return the output of the model, which should be scalar
 	v = tf.matmul(h_fc2, W_fcf) + b_fcf
@@ -150,7 +132,7 @@ pg_actorcritic = ActionValueActorCritic(sess,
 
 saver = tf.train.Saver()
 
-MAX_GAMES = 1001
+MAX_GAMES = 10001
 one_wins = 0
 two_wins = 0
 old_one = 0
