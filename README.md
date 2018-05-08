@@ -48,4 +48,12 @@ This section covers more specific notes about how certain portions of code work.
 
 In order to turn the Connect 4 board into an input for the neural network, the board (normally size [6, 7]) is re-formatted into a one-hot tensor of size [6, 7, 2]. The first two dimensions of the tensor correspond to the row and column, respectively, on the board, and the final dimension is either [1, 0] if the current player has a checker in that position, [0, 1] if the opposing player has a checker in that position, or [0, 0] if the position is empty.
 
-The output of the neural network must have constant dimensions, but the legal moves are dependent on the boardstate. To get around this problem, the output of the network is simply a vector of size [6*7], corresponding to each possible board position. For a given boardstate, outputs that correspond to illegal moves are masked (set to 0), and a softmax function is performed over the remaining legal moves. There is an additional scalar output which corresponds to the network's prediction of winning or losing given the board.
+The output of the neural network must have constant dimensions, but the legal moves are dependent on the boardstate. To get around this problem, the output of the network is simply a vector of size [6x7], corresponding to each possible board position. For a given boardstate, outputs that correspond to illegal moves are masked (set to 0), and a softmax function is performed over the remaining legal moves. There is an additional scalar output which corresponds to the network's prediction of winning or losing given the board.
+
+### Storing Boardstates and Counting Rollouts
+
+[To be updated]
+
+### Testing Neural Network Progress
+
+[To be updated]
