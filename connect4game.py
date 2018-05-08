@@ -1,10 +1,15 @@
 import argparse
 import numpy as np
+import copy
+import time
 
 parser = argparse.ArgumentParser()
 
 
-def move(Board, action):
+def move(Old_Board, action):
+
+    # Create a copy of the board so that the old board doesn't change
+    Board = copy.copy(Old_Board)
 
     # Redefine the action to be 1 less, since python starts arrays at 0
     action -= 1
@@ -16,7 +21,7 @@ def move(Board, action):
         new_row = next(
                 (i for i, x in enumerate(Board[:, action]) if x), None
                 ) - 1
-
+    
     # Figure out whose turn it is
     if sum(sum(Board == 1)) == sum(sum(Board == 2)):
         player_turn = 1
