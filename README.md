@@ -1,6 +1,8 @@
 # Connect 4 Self-Play
 
-This code is an implementation of the self-play general reinforcement learning algorithm described in [this paper](https://arxiv.org/pdf/1712.01815.pdf) by David Silver *et al*. This algorithm uses a single neural network that accepts the boardstate **s** as an input, and outputs a vector of move probabilities **p** with components **p<sub>a</sub>** = Pr(**a**|**s**), for each action **a**, and also a scalar value **v** that is an estimate of the expected outcome **z** of the game, given the position.
+This code is an implementation of the self-play general reinforcement learning algorithm described in [this paper](https://arxiv.org/pdf/1712.01815.pdf) by David Silver *et al*. The purpose of this program is to use machine learning combined with a lookahead search to enable a neural network to "teach itself" to play Connect 4.
+
+This algorithm uses a single neural network that accepts the boardstate **s** as an input, and outputs a vector of move probabilities **p** with components **p<sub>a</sub>** = Pr(**a**|**s**), for each action **a**, and also a scalar value **v** that is an estimate of the expected outcome **z** of the game, given the position.
 
 This was written for fun, to explore the capabilities of machine learning. Connect 4 is a solved game; I was interested in watching a program teach itself to play, *not* in finding the "perfect game".
 
