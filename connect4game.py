@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser()
 
 def move(Old_Board, action):
 
-    # Create a copy of the board so that the old board doesn't change.
+    # Create a copy of the board so that the old board doesn't change
     Board = copy.copy(Old_Board)
 
     # Redefine the action to be 1 less, since python starts arrays at 0
