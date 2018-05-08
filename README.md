@@ -16,6 +16,20 @@ connect4game.py
 ```
 Then, run the code "run_connect4bot_MCTS.py". This code contains the main body of the program, including setting parameters, the Monte Carlo tree search, saving the model, and running test games to monitor the progress of the neural network.
 
+The code "connect4bot_MCTS.py" contains all the TensorFlow mechanics: how boardstates are fed into the neural network, what to do with the outputs, and how to compute gradients and perform updates.
+
+The final code, "connect4game.py", is a standalone code that is accessed to play the game of Connect 4. The function "move" is called by:
+```
+New_Board, Reward = move(Old_Board, action)
+```
+where:
+* "Old_Board" is a matrix of size [6, 7], representing a board of Connect 4. The matrix contains 0's where there are no checkers placed, 1's where Player 1 has placed a checker, and 2's where Player 2 has placed a checker. This is the boardstate that is fed into "move";
+* "action" is a scalar in the range 1:7, representing the choice of column that a new checker will be placed. The player number of the dropped checker is automatically selected such that the two players have alternating turns. Checkers dropped into these numbered columns will automatically drop to the lowest unoccupied space in that column;
+* "New_Board" follows the same format as "Old_Board", and is the boardstate achieved by placing a checker in the "action" column, given the "Old_Board" as a starting position;
+* "Reward" is a scalar that is either -1, 0, or 1. If the "Reward" is 0, no four-in-a-row has been completed by the requsted move, and there are still legal moves available. If the "Reward" is 1, the move just played resulted in a four-in-a-row. This output is independent of which player achieved the four-in-a-row; it only signifies that a four-in-a-row was completed. If the "Reward" is -1, that signifies that no four-in-a-row's have been completed, *and* that the board is full (i.e., there are no more legal moves, and the game is a tie).
+
+"run_connect4bot_MCTS.py" keeps track of which player is making a move, performs lookahead searches using the "move" function in "connect4game.py", and decides on moves (in part) and updates the neural network using "connect4bot_MCTS.py".
+
 ## Connect 4 Rules
 
 ![alt text](http://www.boardgamecapital.com/game_images/connect-four.jpg "Connect Four")
