@@ -26,7 +26,13 @@ The current version of this code works by combining Monte Carlo tree search (MCT
 ```
 a*Q + b*P/(1+N) + c*D/(1+N) + d*sqrt(t)/N
 ```
-where [*a*, *b*, *c*, *d*] are constants; *Q* is a running average of game outcomes from the current player's perspective for each legal move; *P* is the output of the neural network corresponding to each legal move, representing a "preference" for each move; *D* is Dirichlet noise added to each legal move, to aid in exploration; *N* is the visit count for each legal move; and *t* is the total number of Monte Carlo rollouts performed over all legal moves.
+where:
+* [*a*, *b*, *c*, *d*] are constants; 
+* *Q* is a running average of game outcomes from the current player's perspective for each legal move; 
+* *P* is the output of the neural network corresponding to each legal move, representing a "preference" for each move; 
+* *D* is Dirichlet noise added to each legal move, to aid in exploration; 
+* *N* is the visit count for each legal move; and 
+* *t* is the total number of Monte Carlo rollouts performed over all legal moves.
 
 As each rollout (Monte Carlo search from the current boardstate to the end of the game) is completed, *Q* and *N* are updated for the move that was chosen, and *t* is incremented. At the start of the tree search, *N* is 0 for each legal move, and so the "d" term is *Inf*. This causes each move to be selected at least once. At this point, future choices for the tree search are directed largely by how well that legal move performed (*Q*) and the neural network's preference (*P*). As the number of rollouts increases, *Q* becomes a better estimate of the actual game outcome following each legal move, the influence of the neural network's preference (*P*) decreases, and moves that have not been frequently visited (high *t*, low *N*) are more likely to be selected. As a large number of rollouts are completed the visit count becomes mostly representative of how well the player performed following each legal move, with higher visit counts meaning that the move likely had good performance in past rollouts.
 
@@ -52,8 +58,46 @@ The output of the neural network must have constant dimensions, but the legal mo
 
 ### Storing Boardstates and Counting Rollouts
 
-[To be updated]
+In order to store information for each boardstate, boardstates are first transformed into a unique string to identify the board:
+```
+def concatenate_state_data(Board):
+	result = ''
+	for row in Board:
+		for element in row:
+			result += str(element)
+	return result
+```
+This string is then indexed by a number (starting with 0, incrementing by 1 for each new unique boardstate) so that information can be easily connected with boardstates. The stored information is:
+* **P**, which is the neural network output given the specific boardstate as an input. This is stored so that it only needs to be calculated the first time a unique board is seen.
+* **Q**, which is the running average winrate after moving in each legal move. This is stored so that it may be updated each time a boardstate is passed through.
+* **N**, which is the visit count of each legal move for the specific boardstate. This is stored for calculating moves during Monte Carlo rollouts.
+
+All of this information is maintained for each unique boardstate that is visited during Monte Carlo rollouts. This serves several purposes. First, redundant calls to the neural network are removed, speeding up the code. Second, a rollout starting from the first move in a game will almost certainly pass through boardstates that will later be encountered by rollouts from future moves. These future rollouts can then make use of information gathered during previous rollouts (i.e., **Q**), and can make better-informed choices on where to move (i.e., as **Q** gets more accurate, **N** also increases, which means **Q** becomes more influential as compared to **P**/(1+**N**)).
+
+The number of visited unique states almost always increases as more rollouts are completed, but as moves are performed ("real" moves, which are selected after each batch of MC rollouts), previously-visited boardstates (which cannot re-occur in the same game) and now-impossible boardstates (pieces cannot be removed, so conflicts may appear) and their associated **P**, **Q**, and **N** vectors are removed. This cleaning is performed using the unique strings associated with each board, as follows:
+```
+def index_cleaner(Board, Board_index, pred_index, P_index, Q_index, N_index, V_index):
+	Board_string = concatenate_state_data(Board)
+
+	unwanted_list = []
+
+	for index, index_string in enumerate(Board_index):
+		if len([c for c,d in zip(Board_string, index_string) if c!="0" and c!=d]) > 0:
+			unwanted_list.append(index)
+
+	Board_index = [i for j,i in enumerate(Board_index) if j not in unwanted_list]
+	pred_index = [i for j,i in enumerate(pred_index) if j not in unwanted_list]
+	P_index = [i for j,i in enumerate(P_index) if j not in unwanted_list]
+	Q_index = [i for j,i in enumerate(Q_index) if j not in unwanted_list]
+	N_index = [i for j,i in enumerate(N_index) if j not in unwanted_list]
+	V_index = [i for j,i in enumerate(V_index) if j not in unwanted_list]
+
+	return Board_index, pred_index, P_index, Q_index, N_index, V_index
+```
+This process frees up memory and speeds up the code. 
 
 ### Testing Neural Network Progress
 
-[To be updated]
+In order to check whether the neural network is improving, after each update, the neural network plays 1000 games of Connect 4 against a completely random opponent. 500 games are played with the network as Player 1, and 500 games as Player 2. The moves for the neural network are decided purely based on the network output: no Monte Carlo searches allowed. Moves are also picked greedily: given any boardstate, whatever legal move has the highest value is the move that is selected. For the "completely random opponent", moves are simply selected by picking a random (legal) column to place a checker in.
+
+Of course, a random player is not a very formidable opponent for any human player. For the neural network, moving in the same column over and over is a decent enough strategy, since the random opponent has no concept of "blocking" potential wins, but it is not a strong enough strategy to *always* win. Comparatively, almost any human could have a near-perfect winrate against a random opponent (with the exceptions being the rare chance of the random player playing perfectly, and the human getting overconfident and missing a "block" for enough turns that the random player finds the win). Given enough training time, the neural network should eventually achieve a perfect or near-perfect winrate. 
